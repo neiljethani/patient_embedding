@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 =======
 # Patient Embedding 
 ## Introduction:
@@ -32,4 +31,4 @@ Patient representations will be evaluated by visualization of patient representa
 ### Performance on Prediction Tasks:
 
 We will evaluate the AUROC, AUPRC, and F1 Scores of both the unsupervised embeddings directly and via transfer learning of the initialed model. We will aim to predict 24hr Mortality, Discharge, and Sepsis prediction.
->>>>>>> e73e1439a2b36580e83ff1d6c012bede4880640e
+
