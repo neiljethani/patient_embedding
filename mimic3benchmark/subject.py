@@ -72,3 +72,9 @@ def get_first_valid_from_timeseries(timeseries, variable):
             loc = np.where(idx)[0][0]
             return timeseries[variable].iloc[loc]
     return np.nan
+
+def add_age_to_timeseries(episode_data, episode, stay_id):
+    episode['Age'] = np.repeat(episodic_data.Age.ix[stay_id], episode.shape[0])
+    return episode
+
+    

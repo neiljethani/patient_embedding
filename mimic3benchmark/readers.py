@@ -346,3 +346,69 @@ class MultitaskReader(Reader):
                 "decomp": self._data[index][5],
                 "header": header,
                 "name": name}
+    
+    
+class PatientEmbeddingReader(Reader):
+    def __init__(self, dataset_dir, listfile=None, period_length=48.0):
+        """ Reader for in-hospital moratality prediction task.
+
+        :param dataset_dir:   Directory where timeseries files are stored.
+        :param listfile:      Path to a listfile. If this parameter is left `None` then
+                              `dataset_dir/listfile.csv` will be used.
+        :param period_length: Double the Length of the period (in hours) from which the embedding is created.
+        """
+        Reader.__init__(self, dataset_dir, listfile)
+        self._data = [line.split(',') for line in self._data]
+        self._data = [(x, int(wt), int(w)) for (x, wt, w) in self._data]
+        self._period_length = period_length
+        self._input_dim = None
+        
+    def _read_timeseries(self, ts_filename):
+        ret = []
+        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+            header = tsfile.readline().strip().split(',')
+            assert header[0] == "Hours"
+            for line in tsfile:
+                mas = line.strip().split(',')
+                ret.append(np.array(mas))
+            return (np.stack(ret), header)
+    
+    def get_input_dim(self):
+        if self._input_dim is None:
+            name, norm, end_time = self._data[0]
+            (X, header) = self._read_timeseries(name)
+            self._input_dim = X.shape[1] - 1
+        return self._input_dim  
+        
+    def read_example(self, index):
+        """ Reads the example with given index.
+
+        :param index: Index of the line of the listfile to read (counting starts from 0).
+        :return: Dictionary with the following keys:
+            X : np.array
+                2D array containing all events. Each row corresponds to a moment.
+                First column is the time and other columns correspond to different
+                variables.
+            t : float
+                Length of the data in hours. Note, in general, it is not equal to the
+                timestamp of last event.
+            y : int (0 or 1)
+                In-hospital mortality.
+            header : array of strings
+                Names of the columns. The ordering of the columns is always the same.
+            name: Name of the sample.
+        """
+        if index < 0 or index >= len(self._data):
+            raise ValueError("Index must be from 0 (inclusive) to number of lines (exclusive).")
+            
+        name, norm, end_time = self._data[index]
+        end_time += 48
+        t = self._period_length
+        (X, header) = self._read_timeseries(name)
+
+        return {"X": X,
+                "t": t,
+                "norm": norm,
+                "end_time": end_time,
+                "header": header,
+                "name": name}

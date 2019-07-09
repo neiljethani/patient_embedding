@@ -6,6 +6,9 @@ import argparse
 import os
 import sys
 
+import warnings
+warnings.filterwarnings('ignore')
+
 from mimic3benchmark.subject import read_stays, read_diagnoses, read_events, get_events_for_stay, add_hours_elpased_to_events
 from mimic3benchmark.subject import convert_events_to_timeseries, get_first_valid_from_timeseries
 from mimic3benchmark.preprocessing import read_itemid_to_variable_map, map_itemids_to_variables, read_variable_ranges, clean_events
