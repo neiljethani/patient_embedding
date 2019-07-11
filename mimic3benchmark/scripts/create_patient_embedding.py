@@ -17,8 +17,9 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
         os.mkdir(output_dir)
 
     data_list = []
-    data_list_PCA = []
+    data_list_visit = []
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
+    total = 0
     for (patient_index, patient) in enumerate(patients[1:100]):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
@@ -94,7 +95,10 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                         data_list_ts.append((output_ts_filename, 200, hr))
                         
                 #Randomly Select One Window for PCA
-                data_list_PCA.append(data_list_ts[random.randint(len(data_list_ts))])
+                data_list_visit.append(data_list_ts[random.randint(0, len(data_list_ts)-1)])
+                
+                #Collect Number of Visits (To be used to Average Loss)
+                total += 1
 
         if (patient_index + 1) % 100 == 0:
             print("processed {} / {} patients".format(patient_index + 1, len(patients)), end='\r')
@@ -108,12 +112,15 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
     with open(os.path.join(output_dir, "listfile.csv"), "w") as listfile:
         listfile.write('ts_file, total_windows, window\n')
         for (x, y, z) in data_list:
-            listfile.write('{},{},{}\n'.format(x, y, z))
+            listfile.write('{},{},{}\n'.format(x, y, z)) 
     
-    with open(os.path.join(output_dir, "listfile_PCA.csv"), "w") as listfile:
-        listfile.write('ts_file, total_windows, window\n')
-        for (x, y, z) in data_list_PCA:
-            listfile.write('{},{},{}\n'.format(x, y, z))
+    with open(os.path.join(output_dir, "listfile_visit.csv"), "w") as listfile_visit:
+        listfile_visit.write('ts_file, total_windows, window\n')
+        for (x, y, z) in data_list_visit:
+            listfile_visit.write('{},{},{}\n'.format(x, y, z))
+            
+    with open(os.path.join(output_dir, "totalfile.csv"), "w") as totalfile:
+        totalfile.write(str(total))
 
 
 def main():

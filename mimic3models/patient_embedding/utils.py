@@ -43,7 +43,7 @@ def add_transformer_arguments(parser):
 
     parser.add_argument("-b", "--batch_size", type=int, default=512, help="number of batch_size")
     parser.add_argument("-e", "--epochs", type=int, default=1, help="number of epochs")
-    parser.add_argument("-w", "--num_workers", type=int, default=12, help="dataloader worker size")
+    parser.add_argument("-w", "--num_workers", type=int, default=1, help="dataloader worker size")
     
     parser.add_argument("-mp", "--mask_loss_prop", type=int, default=0.5, help="proportion of mask sequence loss in total loss")
 
