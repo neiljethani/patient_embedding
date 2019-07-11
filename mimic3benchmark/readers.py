@@ -10,6 +10,7 @@ class Reader(object):
     def __init__(self, dataset_dir, listfile=None):
         self._dataset_dir = dataset_dir
         self._current_index = 0
+        
         if listfile is None:
             listfile_path = os.path.join(dataset_dir, "listfile.csv")
         else:
@@ -349,7 +350,7 @@ class MultitaskReader(Reader):
     
     
 class PatientEmbeddingReader(Reader):
-    def __init__(self, dataset_dir, listfile=None, period_length=48.0):
+    def __init__(self, dataset_dir, listfile=None, period_length=48.0, totalfile=None):
         """ Reader for in-hospital moratality prediction task.
 
         :param dataset_dir:   Directory where timeseries files are stored.
@@ -362,6 +363,16 @@ class PatientEmbeddingReader(Reader):
         self._data = [(x, int(wt), int(w)) for (x, wt, w) in self._data]
         self._period_length = period_length
         self._input_dim = None
+        
+        if totalfile is None:
+            totalfile_path = os.path.join(dataset_dir, 'totalfile.csv')
+        else:
+            totalfile_path = totalfile
+        with open(totalfile_path, "r") as tfile:
+            self._total = int(tfile.readlines()[0])
+            
+    def get_number_of_visits(self):
+        return self._total
         
     def _read_timeseries(self, ts_filename):
         ret = []
