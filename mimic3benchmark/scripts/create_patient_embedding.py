@@ -20,7 +20,7 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
     data_list_visit = []
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
     total = 0
-    for (patient_index, patient) in enumerate(patients[1:100]):
+    for (patient_index, patient) in enumerate(patients):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
 
@@ -54,6 +54,18 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                     print("\n\t(no events in ICU) ", patient, ts_filename)
                     continue
                 
+                #Remove Patients With Nothing in the First 48 Hours
+                if len([line for (line, t) in zip(ts_lines, event_times) 
+                        if -eps < t < 48]) == 0:
+                    print("\n\t(no events in first 48hrs of ICU) ", patient, ts_filename)
+                    continue
+                    
+                #Remove Patients With Nothing in the Last 48 Hours
+                if len([line for (line, t) in zip(ts_lines, event_times) 
+                        if los-48-eps < t < los]) == 0:
+                    print("\n\t(no events in last 48hrs of ICU) ", patient, ts_filename)
+                    continue
+                
                 ts_lines_hourly = [[] for _ in range(math.ceil(los))]
                 for hr in range(math.ceil(los)):
                     ts_lines_hourly[hr] = [line for (line, t) in zip(ts_lines, event_times) 
@@ -83,7 +95,9 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                     for hr in windows[:200]:
                         end_time = hr + n_hours
                         ts_lines_sel = [line for (line, t) in zip(ts_lines, event_times) 
-                                        if hr - eps < t < hr + end_time]
+                                        if -eps < t < end_time]
+                        #Try this out next time if needed
+                        #ts_lines_sel = list(itertools.chain.from_iterable(ts_lines_hourly[0:end_time]))
 
                         output_ts_filename = "{}_{}_{}.csv".format(patient, ts_filename.split('.')[0], hr)
                         with open(os.path.join(output_dir, output_ts_filename), "w") as outfile:
@@ -95,7 +109,8 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                         data_list_ts.append((output_ts_filename, 200, hr))
                         
                 #Randomly Select One Window for PCA
-                data_list_visit.append(data_list_ts[random.randint(0, len(data_list_ts)-1)])
+                if len(data_list_ts) >= 1:
+                    data_list_visit.append(data_list_ts[random.randint(0, len(data_list_ts)-1)])
                 
                 #Collect Number of Visits (To be used to Average Loss)
                 total += 1

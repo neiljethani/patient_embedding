@@ -84,7 +84,7 @@ valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, n
 
 #Train Model
 print("Creating Trainer")
-trainer = EmbeddingTrainer(model = None, 
+trainer = EmbeddingTrainer(model = None, output_dir= args.output_dir, 
                            train_dataloader=trainLoader, test_dataloader=valLoader, 
                            embed_method = args.embed_method, 
                            layers = args.layers, heads = args.attn_heads, MSprop = args.mask_loss_prop,

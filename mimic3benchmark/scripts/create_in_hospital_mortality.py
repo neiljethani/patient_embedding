@@ -15,7 +15,7 @@ def process_partition(args, partition, eps=1e-6, n_hours=24):
 
     xy_pairs = []
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
-    for (patient_index, patient) in enumerate(patients[:100]):
+    for (patient_index, patient) in enumerate(patients):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
 

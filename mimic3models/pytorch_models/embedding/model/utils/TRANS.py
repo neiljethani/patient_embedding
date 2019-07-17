@@ -150,7 +150,7 @@ class PositionalEmbedding(nn.Module):
         self.max_len = max_len
         
     def forward(self, x):
-        x = x + Variable(self.lut(torch.LongTensor(range(self.max_len))))
+        x = x + Variable(self.lut(torch.LongTensor(range(self.max_len)).cuda()))
         return x
 
 #Input Embeddings    

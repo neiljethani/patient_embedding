@@ -382,6 +382,10 @@ class PatientEmbeddingReader(Reader):
             for line in tsfile:
                 mas = line.strip().split(',')
                 ret.append(np.array(mas))
+            try:
+                (np.stack(ret), header)
+            except:
+                print(ts_filename)
             return (np.stack(ret), header)
     
     def get_input_dim(self):

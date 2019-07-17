@@ -21,7 +21,7 @@ class EmbeddingTrainer():
     """
     General Trainer for all Model Types
     """
-    def __init__(self, train_dataloader: DataLoader, test_dataloader: DataLoader = None, 
+    def __init__(self, output_dir, train_dataloader: DataLoader, test_dataloader: DataLoader = None, 
                  embed_method: str = 'TRANS', model = None, 
                  layers: int = 3, heads: int = 4, dropout: float = 0.1, MSprop: float = 0.5,
                  lr: float = 0, betas = (0.9, 0.98), eps=1e-9, 
@@ -48,6 +48,7 @@ class EmbeddingTrainer():
         # Setup cuda device for BERT training, argument -c, --cuda should be true
         cuda_condition = torch.cuda.is_available() and with_cuda
         self.device = torch.device("cuda:0" if cuda_condition else "cpu")
+        print(self.device)
         
         # Setting the train and test data loader
         self.train_data = train_dataloader
@@ -62,6 +63,7 @@ class EmbeddingTrainer():
                                     dropout=dropout, embed_method = embed_method)
             if embed_method != 'PCA':
                 self.model = self.model.float()
+                self.model.to(self.device)
                 print("Total Parameters:", sum([p.nelement() for p in self.model.parameters()]))
         
         if embed_method != 'PCA':
@@ -83,7 +85,7 @@ class EmbeddingTrainer():
             self.criterion = nn.MSELoss()
                 
         #Create save dir + best dir
-        self.save_dir = os.path.join('/work/MIMIC/models/patient_embedding/' + self.embed_method, 
+        self.save_dir = os.path.join(output_dir, self.embed_method, 
                                      arrow.now().format('YYYY-MM-DD'))
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir) 
