@@ -98,7 +98,7 @@ keras_states/
 states/
 
 # Bash scripts
-.sh
+*.sh
 
 #jupyter notebooks
-.ipynb
+*.ipynb
