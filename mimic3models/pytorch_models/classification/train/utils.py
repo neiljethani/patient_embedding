@@ -18,7 +18,8 @@ class LossCompute:
             loss.backward()
             if self.opt is not None:
                 self.opt.step()
-                self.opt.optimizer.zero_grad()
+                self.opt.zero_grad()
+                #self.opt.optimizer.zero_grad()
             
         return loss.item()
     

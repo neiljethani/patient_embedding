@@ -54,10 +54,10 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                     print("\n\t(no events in ICU) ", patient, ts_filename)
                     continue
                 
-                #Remove Patients With Nothing in the First 48 Hours
+                #Remove Patients With Nothing in the First 24 Hours
                 if len([line for (line, t) in zip(ts_lines, event_times) 
-                        if -eps < t < 48]) == 0:
-                    print("\n\t(no events in first 48hrs of ICU) ", patient, ts_filename)
+                        if -eps < t < 24]) == 0:
+                    print("\n\t(no events in first 24hrs of ICU) ", patient, ts_filename)
                     continue
                     
                 #Remove Patients With Nothing in the Last 48 Hours
@@ -71,7 +71,7 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                     ts_lines_hourly[hr] = [line for (line, t) in zip(ts_lines, event_times) 
                                            if -eps + hr < t < hr + 1]
                 
-                
+                #Create File for Each Window Up to 200 Windows per Patient (200 windows randomly selected if over)
                 n_windows = math.ceil(los) - n_hours
                 if n_windows <= 200:
                     for hr in range(n_windows):
@@ -120,9 +120,12 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
 
     print("\n", len(data_list))
     if partition == "train":
-        random.shuffle(data_list)
+        data_list = sorted(data_list)
+        data_list_visit = sorted(data_list_visit)
+        #random.shuffle(data_list)
     if partition == "val":
-        xy_pairs = sorted(data_list)
+        data_list = sorted(data_list)
+        data_list_visit = sorted(data_list_visit)
 
     with open(os.path.join(output_dir, "listfile.csv"), "w") as listfile:
         listfile.write('ts_file, total_windows, window\n')
@@ -147,7 +150,7 @@ def main():
     if not os.path.exists(args.output_path):
         os.makedirs(args.output_path)
 
-    process_partition(args, "train")
+    #process_partition(args, "train")
     process_partition(args, "val")
 
 

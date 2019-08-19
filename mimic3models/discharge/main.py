@@ -8,12 +8,12 @@ import imp
 import re
 
 from mimic3models.patient_embedding import utils
-from mimic3benchmark.readers import DayReader
+from mimic3benchmark.readers import HourlyReader
 
 from mimic3models.preprocessing import DiscretizerContinuous, Normalizer
 from mimic3models import common_utils
 
-from mimic3models.pytorch_models.classification.dataset.utils import ClassificationDataset
+from mimic3models.pytorch_models.classification.dataset.utils import HourlyClassificationDataset
 from mimic3models.pytorch_models.classification.train.train import ClassificationTrainer
 
 from torch.utils.data import DataLoader
@@ -42,13 +42,13 @@ while args.embed_method not in ['TRANS', 'DAE', 'PCA', 'RAW', 'DFE']:
 
 # Build readers, discretizers, normalizers
 print("Creating Data File Reader")
-train_reader = DayReader(dataset_dir=os.path.join(args.data, 'val'), 
-                                         listfile=os.path.join(args.data, 'val', 'listfile.csv'), 
-                                         period_length=24.0)
+train_reader = HourlyReader(dataset_dir=os.path.join(args.data, 'val'), 
+                               listfile=os.path.join(args.data, 'val', 'listfile.csv'), 
+                               period_length=24.0)
 
-val_reader = DayReader(dataset_dir=os.path.join(args.data, 'val_test'),
-                                       listfile=os.path.join(args.data, 'val_test', 'listfile.csv'),
-                                       period_length=24.0)
+val_reader = HourlyReader(dataset_dir=os.path.join(args.data, 'val_test'),
+                             listfile=os.path.join(args.data, 'val_test', 'listfile.csv'),
+                             period_length=24.0)
 
 #Limit the Percent of Data to use for training
 if args.percent_data != 100:
@@ -73,13 +73,12 @@ normalizer.load_params(normalizer_state)
 
 #Create Dataset + DataLoader
 print("Building Dataset")
-train_dataset = ClassificationDataset(reader=train_reader, discretizer=discretizer, 
+train_dataset = HourlyClassificationDataset(reader=train_reader, discretizer=discretizer, 
                                       normalizer=normalizer, return_name=False, 
                                       embed_method=args.embed_method)
-val_dataset = ClassificationDataset(reader=val_reader, discretizer=discretizer, 
+val_dataset = HourlyClassificationDataset(reader=val_reader, discretizer=discretizer, 
                                     normalizer=normalizer, return_name=False, 
                                     embed_method=args.embed_method)
-
 print("Building DataLoader")
 trainLoader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
@@ -87,12 +86,12 @@ valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, n
 
 #Train Classifier
 print("Creating Trainer")
-trainer = ClassificationTrainer(task = 'IHM', model = None, output_dir = args.output_dir,
+trainer = ClassificationTrainer(task = 'DIS', model = None, output_dir = args.output_dir,
                                 train_dataloader=trainLoader, test_dataloader=valLoader, 
                                 embed_method = args.embed_method, embed_model = args.embed_model,
                                 lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), eps = args.adam_eps,
                                 factor = args.factor, warmup = args.factor, 
-                                with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, 
+                                with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq,
                                 percent_data=args.percent_data)
     
 print("Training Start")
@@ -100,7 +99,7 @@ for epoch in range(args.epochs):
     trainer.train(epoch)
     if valLoader is not None:
         trainer.test(epoch)
-    trainer.save_better(epoch, args.performance_threshold)
+    trainer.save_better(epoch)
     trainer.write_loss()
 trainer.save_best()
 trainer.write_loss()
@@ -112,7 +111,7 @@ if args.tune:
         trainer.train(epoch)
         if valLoader is not None:
             trainer.test(epoch)
-        trainer.save_better(epoch, args.performance_threshold)
+        trainer.save_better(epoch)
         trainer.write_loss()
     trainer.save_best()
     trainer.write_loss()

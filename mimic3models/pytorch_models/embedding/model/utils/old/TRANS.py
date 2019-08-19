@@ -7,9 +7,8 @@ from torch import tanh
 import numpy as np
 
 
+
 #### TRANSFORMER CLASS ####
-#Class for Encoder Decoder Embedding Model
-##Contains 2 Layer of Encoder: A = Mask Prediction Encoding, B= Future Prediction Encoding
 class EncoderDecoder(nn.Module):
     """
     A standard Encoder-Decoder architecture. Base for this and many 
@@ -46,60 +45,44 @@ class EncoderDecoder(nn.Module):
     def embedding(self, src):
         return(self.encoder_B(self.encoder_A(self.src_embed(src), None), None))
 
-#Class for Encoder Only Transformer Model
-##Includes Legacy Code with Two Encoding Layers
+#Purely an Encoder Model
 class EncoderModel(nn.Module):
-    def __init__(self, add_emb, add_connections, encoder, src_embed, generator, embed=False):
+    def __init__(self, encoder, src_embed, generator, embed=False):
         super(EncoderModel, self).__init__()
-        self.add_emb = add_emb
-        self.add_connections = add_connections
         self.encoder_A = encoder
         self.encoder_B = copy.deepcopy(encoder)
         self.src_embed = src_embed
         self.generator = generator
-        self.info = {'d_model': self.encoder.layers[0].size,
-                     'layers': len(self.encoder.layers)}
+        self.info = {'d_model': self.encoder_A.layers[0].size,
+                     'layers': len(self.encoder_A.layers)}
         self.embed = embed
     
     def forward(self, src, src_mask=None):
-        src_mask = self.add_connections(src, src_mask)
-        src = self.add_emb(src)
-        z, x = self.encode(src, src_mask)
+        x, z = self.encode(src, src_mask)
         if not self.embed:
-            return z[:,-2,:], z[:,-1,:] 
+            return x, z
         else:
-            return z[:,-1,:]
+            return z
         
     def encode(self, src, src_mask):
         x = self.encoder_A(self.src_embed(src), src_mask)
-        return self.encoder_B(x, src_mask), x 
+        return x, self.encoder_B(x, src_mask) 
     
-#Updated class for Encoder Only Transformer Model    
-class EncoderModel_V2(nn.Module):
-    def __init__(self, add_emb, add_connections, encoder, src_embed, generator, embed=False):
-        super(EncoderModel, self).__init__()
-        self.add_emb = add_emb
-        self.add_connections = add_connections
-        self.encoder = encoder
-        self.src_embed = src_embed
-        self.generator = generator
-        self.info = {'d_model': self.encoder.layers[0].size,
-                     'layers': len(self.encoder.layers)}
-        self.embed = embed
+    def embedding(self, src):
+        x, z = self.encode(src, None)
+        return z
     
-    def forward(self, src, src_mask=None):
-        src_mask = self.add_connections(src, src_mask)
-        src = self.add_emb(src)
-        x = self.encode(src, src_mask)
-        return x[:,-2,:], x[:,-1,:]
-        
-    def encode(self, src, src_mask):
-        x = self.encoder(self.src_embed(src), src_mask)
-        return x 
     
-   
     
-#### CLASSES FOR ADD + NORM & Feed Forward ####    
+#### GENERAL UTILS ####
+class GELU(nn.Module):
+    """
+    Paper Section 3.4, last paragraph notice that BERT used the GELU instead of RELU
+    """
+
+    def forward(self, x):
+        return 0.5 * x * (1 + torch.tanh(math.sqrt(2 / math.pi) * (x + 0.044715 * torch.pow(x, 3))))
+    
 class PositionwiseFeedForward(nn.Module):
     "Implements FFN equation."
 
@@ -139,13 +122,11 @@ class SublayerConnection(nn.Module):
     def forward(self, x, sublayer):
         "Apply residual connection to any sublayer with the same size."
         return x + self.dropout(sublayer(self.norm(x)))
-
-#### Function to Copy Layers ####
+    
 def clones(module, N):
     "Produce N identical layers."
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
-#### CLASS to Generate Prediction ####
 class Generator(nn.Module):
     "Define Standard Linear w/ Tanh instead of GELU activation"
     def __init__(self, d_model, d_input):
@@ -155,8 +136,7 @@ class Generator(nn.Module):
 
     def forward(self, x):
         return self.activation(self.proj(x))
-
-#Creates mask for Decoding       
+      
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
@@ -166,7 +146,28 @@ def subsequent_mask(size):
 
 
 #### EMBEDDING ####
-#Postional Embedding
+#Position Embeddings
+class PositionalEncoding(nn.Module):
+    "Implement the PE function."
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) *
+                             -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+        
+    def forward(self, x):
+        x = x + Variable(self.pe[:, :x.size(1)], 
+                         requires_grad=False)
+        return self.dropout(x)
+    
 class PositionalEmbedding(nn.Module):
     "Postional Embedding Class, where Positional Embedding is Learned"
     def __init__(self, d_model, device, max_len=24):
@@ -178,10 +179,20 @@ class PositionalEmbedding(nn.Module):
         self.device = device
         
     def forward(self, x):
-        x = x + Variable(self.lut(torch.LongTensor(range(self.max_len)).to(self.device)))
+        x = x + Variable(self.lut(torch.LongTensor(range(self.max_len)).cuda()))
         return x
 
-#Input Embeddings        
+#Input Embeddings    
+class Embeddings(nn.Module):
+    def __init__(self, d_model, vocab):
+        super(Embeddings, self).__init__()
+        self.lut = nn.Embedding(vocab, d_model)
+        self.d_model = d_model
+
+    def forward(self, x):
+        return self.lut(x) * math.sqrt(self.d_model)
+    
+    
 class LinearEmbedding(nn.Module):
     def __init__(self, d_model, d_input):
         super(LinearEmbedding, self).__init__()
@@ -190,6 +201,35 @@ class LinearEmbedding(nn.Module):
     
     def forward(self, x):
         return self.lut(x) * math.sqrt(self.d_model)
+
+#Mask and EMB Token Embeddings    
+class InputTypeEmbedding(nn.Module):
+    def __init__(self, d_input):
+        super(InputTypeEmbedding, self).__init__()
+        self.lut = nn.Embedding(3, d_input, padding_idx=0)
+        self.d_input = d_input
+        
+    def forward(self, x):
+        return self.lut(x)
+
+#Adding all Embedding    
+class CompleteEmbedding(nn.Module):
+    def __init__(self, d_model, d_input):
+        super(CompleteEmbedding, self).__init__()
+        self.input = InputTypeEmbedding(d_input)
+        self.linear = LinearEmbedding(d_model, d_input)
+        self.positional = PositionalEmbedding(d_model)
+        self.d_input = d_input
+        self.d_model = d_model
+    
+    def forward(x, input_info=None, is_src=True):
+        if is_src:
+            x = x + self.input(input_info)
+            x = self.linear(x)
+            return self.positional(x)
+        else:
+            x = self.linear(x)
+            return self.positional(x)
 
 
 #### ATTENTION ####
@@ -302,41 +342,30 @@ class DecoderLayer(nn.Module):
         return self.sublayer[2](x, self.feed_forward)
     
     
-#### INPUT: Adding EMB Token ####    
-class InputAddAverageToken(nn.Module):
+#### INPUT: Adding EMB Token ####
+class InputModLayer(nn.Module):
     def __init__(self):
-        super(InputAddAverageToken, self).__init__()
-    
+        super(InputModLayer, self).__init__()
+        
+    def forward(self, x, mask):
+        #Pad Sequence with EMB Token
+        x = F.pad(x, (0,0,0,1,0,0), 'constant', 0)
+        #Pad Mask with 2 to create Seqment Info
+        x_info = F.pad(mask, (0,1), 'constant', 2)
+        mask = F.pad(mask, (0,1), 'constant', 0)
+        return x, x_info, mask
+
+#### CONSTRAIN: Adding Embedding Token to Each Sequential Embedding ####
+class ConstrainEmbedding(nn.Module):
+    def __init__(self, size, dropout):    
+        super(ConstrainEmbedding, self).__init__()
+        self.size = size
+        self.norm = LayerNorm(size)
+        
     def forward(self, x):
-        ##Add Emb Token as Average to Sequence
-        avg_x = x.mean(1).unsqueeze(1)
-        x = torch.cat((x, avg_x, avg_x), dim=1)
-        return x
-    
-    
-#### Create Convolutional SRC Masks: Only Neighbors Attend to Each other, EMB tokens Attend to Everything
-class CreateConections(nn.Module):
-    def __init__(self, device='cpu', seq_len=24):
-        super(CreateConections, self).__init__()
-        self.device = device
-        self.seq_len=seq_len
-    
-    def forward(self, x, src_mask):
-        if src_mask == None:
-            src_mask = np.ones((x.size()[0], self.seq_len, self.seq_len))
-        else:
-            src_mask.numpy()
-        #Add Connections to Neighbors
-        src_mask = np.triu(src_mask, -1)
-        src_mask[np.triu(src_mask, 2)==1] = 0
-        src_mask = torch.tensor(src_mask, device=self.device).float()
-        
-        #Append Connections to Embedding Token
-        src_mask = F.pad(src_mask, (0,2,0,2,0,0), 'constant', 1)
-        
-        return src_mask
-        
-            
+        y = x[:, :-1, :]
+        z = x[:, -1, :].unsqueeze(-2).expand(-1, y.size()[1], -1)
+        return z + self.norm(y)
     
 
 

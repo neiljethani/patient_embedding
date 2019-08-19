@@ -21,6 +21,10 @@ from mimic3models.pytorch_models.embedding.train.train import EmbeddingTrainer
 
 from torch.utils.data import DataLoader
 
+import resource
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (8192, rlimit[1]))
+
 parser = argparse.ArgumentParser()
 utils.add_transformer_arguments(parser)
 parser.add_argument('--data', type=str, help='Path to the data of patient embedding task',
@@ -31,8 +35,8 @@ parser.add_argument('--embed_method', type=str, default = 'TRANS', help='Embeddi
 args = parser.parse_args()
 print(args)
 
-while args.embed_method not in ['TRANS', 'DAE', 'PCA', 'RAW']:
-    args.embed_method = input('Enter Embedding Method (TRANS, DAE, PCA, RAW): ')
+while args.embed_method not in ['TRANS', 'DAE', 'PCA', 'RAW', 'COPY', 'DFE']:
+    args.embed_method = input('Enter Embedding Method (TRANS, DAE, PCA, RAW. DFE): ')
 
 # Build readers, discretizers, normalizers
 print("Creating Data File Reader")
@@ -47,7 +51,8 @@ else:
 
 
 val_reader = PatientEmbeddingReader(dataset_dir=os.path.join(args.data, 'val'),
-                                    listfile=os.path.join(args.data, 'val', 'listfile_visit.csv'),
+                                    #listfile=os.path.join(args.data, 'val', 'listfile_visit.csv'),
+                                    listfile=os.path.join(args.data, 'val', 'listfile.csv'),
                                     period_length=48.0)
 
 print("Initializing Discretizer and Normalizer")
@@ -84,7 +89,7 @@ valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, n
 
 #Train Model
 print("Creating Trainer")
-trainer = EmbeddingTrainer(model = None, output_dir= args.output_dir, 
+trainer = EmbeddingTrainer(model = args.model, output_dir= args.output_dir, 
                            train_dataloader=trainLoader, test_dataloader=valLoader, 
                            embed_method = args.embed_method, 
                            layers = args.layers, heads = args.attn_heads, MSprop = args.mask_loss_prop,
@@ -92,14 +97,22 @@ trainer = EmbeddingTrainer(model = None, output_dir= args.output_dir,
                            factor = args.factor, warmup = args.factor, 
                            with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq)
 
-print("Training Start")
-for epoch in range(args.epochs):
-    trainer.train(epoch)
-    trainer.save(epoch)
+if args.embed_method != 'COPY':
+    print("Training Start")
+    for epoch in range(args.epochs):
+        trainer.train(epoch)
+        if valLoader is not None:
+            trainer.test(epoch)
+        trainer.save_better(epoch)
+        trainer.write_loss()
+    trainer.save_best()
+else:
+    print("Training Start")
+    trainer.train(0)
     if valLoader is not None:
-        trainer.test(epoch)
-trainer.save_best()
-trainer.write_loss()
+        trainer.test(0)
+    trainer.write_loss()
+        
 
 
 

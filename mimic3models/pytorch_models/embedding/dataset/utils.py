@@ -45,14 +45,22 @@ class PatientEmbeddingDataset(data.Dataset):
             X = self.normalizer.transform(X)
         
         src = np.array(X[-int(t):-int(t/2)])
+        tgt = np.array(X[-int(t/2):])
         
-        if self.embed_method == 'TRANS':
+        if self.embed_method in ['TRANS', 'COPY']:
             tgt = np.array(X[-int(t/2):])
+            
+            if self.embed_method == 'COPY':
+                data = {'src':src, 'tgt':tgt, 'norm':norm}
+                if self.return_name:
+                    data['name'] = name
+                return data
 
             mask = np.zeros(int(t/2))
-            n_masks = round(self.mask_percent*int(t/2))
-            mask_ids = np.random.permutation(int(t/2))[:n_masks]
-            mask[mask_ids] = 1
+            if self.mask_percent > 0.01:
+                n_masks = round(self.mask_percent*int(t/2))
+                mask_ids = np.random.permutation(int(t/2))[:n_masks]
+                mask[mask_ids] = 1
 
             src_masked = copy.deepcopy(src)
             src_masked[(mask==1), :] = 0
@@ -62,13 +70,19 @@ class PatientEmbeddingDataset(data.Dataset):
             
             data = {'src_masked':src_masked, 'src':src, 
                     'tgt_input':tgt_input, 'tgt':tgt, 'tgt_mask': tgt_mask,
-                    'norm':norm, 'mask':mask}
-        else:
+                    'norm':norm, 'mask':mask} 
+        elif self.embed_method in ['PCA', 'DAE']:
             src = src.flatten()
             data = {'src':src, 'tgt':src, 'norm':norm}
+        elif self.embed_method == 'DFE':
+            src = src.flatten()
+            tgt = tgt.flatten()
+            data = {'src':src, 'tgt':tgt, 'norm':norm}
         
         if self.return_name:
             data['name'] = name
         
         return data 
+    
+
         

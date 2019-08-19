@@ -366,4 +366,8 @@ class Normalizer:
         ret = 1.0 * X
         for col in fields:
             ret[:, col] = (X[:, col] - self._means[col]) / self._stds[col]
+        #Restric z-scores to be between -6 and 6 and rescale to -1 and 1
+        ret[ret < -6] = -6
+        ret[ret > 6] = 6
+        ret = ret/6
         return ret

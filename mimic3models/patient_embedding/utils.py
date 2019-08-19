@@ -45,12 +45,15 @@ def add_transformer_arguments(parser):
     parser.add_argument("-e", "--epochs", type=int, default=1, help="number of epochs")
     parser.add_argument("-w", "--num_workers", type=int, default=12, help="dataloader worker size")
     
-    parser.add_argument("-mp", "--mask_loss_prop", type=int, default=0.5, help="proportion of mask sequence loss in total loss")
-
+    parser.add_argument("-mp", "--mask_loss_prop", type=float, default=0.5, help="proportion of mask sequence loss in total loss")
+    parser.add_argument("--percent_mask", type=float, default=0.00, help="proportion of sequence to mask")
+    
+    parser.add_argument("-nc", "--no_cuda", action="store_false", dest="with_cuda")
     parser.add_argument("--with_cuda", type=bool, default=True, help="training with CUDA: true, or false")
     parser.add_argument("--log_freq", type=int, default=10, help="printing loss every n iter: setting n")
     parser.add_argument("--cuda_devices", type=int, nargs='+', default=None, help="CUDA device ids")
     parser.add_argument("--on_memory", type=bool, default=True, help="Loading on memory: true or false")
+    parser.add_argument("--model", type=str, default=None, help="Model to continue training")
 
     parser.add_argument("--lr", type=float, default=0.0, help="learning rate of adam")
     parser.add_argument("--adam_eps", type=float, default=1e-9, help="weight_decay of adam")
@@ -67,5 +70,7 @@ def add_transformer_arguments(parser):
     parser.add_argument('--normalizer_state', type=str, default=None,
                         help='Path to a state file of a normalizer. Leave none if you want to '
                              'use one of the provided ones.')
+    
+    parser.add_argument('-th', '--performance_threshold', type=float, default=.5)
     
     

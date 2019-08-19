@@ -9,16 +9,18 @@ from torch.autograd import Variable
 class TransformerClassifier(nn.Module):
     def __init__(self, d_model, seq_len, dropout=0.1):
         super(TransformerClassifier, self).__init__()
-        self.conv = nn.Conv1d(seq_len, seq_len, d_model)
+        #self.conv = nn.Conv1d(seq_len, seq_len, d_model)
         self.hidden = nn.Linear(d_model, d_model)
+        #self.hidden = nn.Linear(d_model*seq_len, d_model)
         self.output = nn.Linear(d_model, 2)
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x):
-        attn_weights = F.softmax(F.relu(self.conv(x)), dim=1).transpose(1,2)
-        x = torch.bmm(attn_weights, x)
-        x = F.relu(self.dropout(self.hidden(x)))
-        x = F.softmax(self.output(x)) 
+        #attn_weights = F.softmax(F.relu(self.conv(x)), dim=1).transpose(1,2)
+        #x = torch.bmm(attn_weights, x).squeeze()
+        #x = x.view(x.size(0), -1)
+        x = torch.tanh(self.dropout(self.hidden(x)))
+        x = F.softmax(self.output(x), dim=1) 
         return x
       
     
@@ -31,7 +33,7 @@ class DAEClassifier(nn.Module):
         
     def forward(self, x):
         x = F.relu(self.dropout(self.hidden(x)))
-        x = F.softmax(self.output(x))
+        x = F.softmax(self.output(x), dim=1)
         return x
 
     
@@ -43,7 +45,7 @@ class PCAClassifier(DAEClassifier):
     def forward(self, x):
         x = self.PCAmodel.embedding(x)
         x = F.relu(self.dropout(self.hidden(x)))
-        x = F.softmax(self.output(x))
+        x = F.softmax(self.output(x), dim=1)
         return x
     
         
@@ -51,13 +53,11 @@ class RawClassifier(nn.Module):
     def __init__(self, d_input, d_model, dropout=0.1):
         super(RawClassifier, self).__init__()
         self.embed = nn.Linear(d_input, d_model)
-        self.hidden = nn.Linear(d_model, d_model)
         self.output = nn.Linear(d_model, 2)
         self.embed_dropout = nn.Dropout(dropout)
         self.hidden_dropout = nn.Dropout(dropout)
     
     def forward(self, x):
         x = F.relu(self.embed_dropout(self.embed(x)))
-        x = F.relu(self.hidden_dropout(self.hidden(x)))
-        x = F.softmax(self.output(x))
+        x = F.softmax(self.output(x), dim=1)
         return x    

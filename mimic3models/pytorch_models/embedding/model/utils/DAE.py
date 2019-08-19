@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import tanh
 import math, copy, time
 from torch.autograd import Variable
 
@@ -53,10 +54,10 @@ class Encoder(nn.Module):
             self.deep = False
         
     def forward(self, x):
-        x = F.relu(self.encode(x))
+        x = tanh(self.encode(x))
         if self.deep:
             for layer in self.linears:
-                x = F.relu(layer(x))
+                x = tanh(layer(x))
         return x  
     
     
@@ -75,8 +76,8 @@ class Decoder(nn.Module):
     def forward(self, x):
         if self.deep:
             for layer in self.linears:
-                x = F.relu(layer(x))
-        x = F.relu(self.decode(x))
+                x = tanh(layer(x))
+        x = tanh(self.decode(x))
         return x
     
 

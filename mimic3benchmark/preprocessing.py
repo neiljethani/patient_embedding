@@ -139,7 +139,7 @@ def remove_outliers_for_variable(events, variable, ranges):
     if variable not in ranges.index:
         return events
     idx = (events.VARIABLE == variable)
-    V = events.VALUE[idx]
+    V = pd.to_numeric(events.VALUE[idx])
     V.ix[V < ranges.OUTLIER_LOW[variable]] = np.nan
     V.ix[V > ranges.OUTLIER_HIGH[variable]] = np.nan
     V.ix[V < ranges.VALID_LOW[variable]] = ranges.VALID_LOW[variable]
@@ -288,4 +288,19 @@ def clean_events(events):
             print("number of rows:", np.sum(idx))
             print("values:", events.ix[idx])
             exit()
+    return events.ix[events.VALUE.notnull()]
+
+
+def clean_events_remove_outliers(events, ranges):
+    global clean_fns
+    for var_name, clean_fn in clean_fns.items():
+        idx = (events.VARIABLE == var_name)
+        try:
+            events.ix[idx, 'VALUE'] = clean_fn(events.ix[idx])
+        except Exception as e:
+            print("Exception in clean_events:", clean_fn.__name__, e)
+            print("number of rows:", np.sum(idx))
+            print("values:", events.ix[idx])
+            exit()
+        events = remove_outliers_for_variable(events, var_name, ranges)
     return events.ix[events.VALUE.notnull()]

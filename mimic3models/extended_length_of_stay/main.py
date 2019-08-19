@@ -43,12 +43,12 @@ while args.embed_method not in ['TRANS', 'DAE', 'PCA', 'RAW', 'DFE']:
 # Build readers, discretizers, normalizers
 print("Creating Data File Reader")
 train_reader = DayReader(dataset_dir=os.path.join(args.data, 'val'), 
-                                         listfile=os.path.join(args.data, 'val', 'listfile.csv'), 
-                                         period_length=24.0)
+                                          listfile=os.path.join(args.data, 'val', 'listfile.csv'), 
+                                          period_length=24.0)
 
 val_reader = DayReader(dataset_dir=os.path.join(args.data, 'val_test'),
-                                       listfile=os.path.join(args.data, 'val_test', 'listfile.csv'),
-                                       period_length=24.0)
+                                        listfile=os.path.join(args.data, 'val_test', 'listfile.csv'),
+                                        period_length=24.0)
 
 #Limit the Percent of Data to use for training
 if args.percent_data != 100:
@@ -70,6 +70,9 @@ if normalizer_state is None:
     normalizer_state = os.path.join(os.path.dirname(__file__), normalizer_state)
 normalizer.load_params(normalizer_state)
 
+args_dict = dict(args._get_kwargs())
+args_dict['header'] = discretizer_header
+args_dict['task'] = 'ihm'
 
 #Create Dataset + DataLoader
 print("Building Dataset")
@@ -79,7 +82,6 @@ train_dataset = ClassificationDataset(reader=train_reader, discretizer=discretiz
 val_dataset = ClassificationDataset(reader=val_reader, discretizer=discretizer, 
                                     normalizer=normalizer, return_name=False, 
                                     embed_method=args.embed_method)
-
 print("Building DataLoader")
 trainLoader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
@@ -87,12 +89,12 @@ valLoader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, n
 
 #Train Classifier
 print("Creating Trainer")
-trainer = ClassificationTrainer(task = 'IHM', model = None, output_dir = args.output_dir,
+trainer = ClassificationTrainer(task = 'ELOS', model = None, output_dir = args.output_dir,
                                 train_dataloader=trainLoader, test_dataloader=valLoader, 
                                 embed_method = args.embed_method, embed_model = args.embed_model,
                                 lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), eps = args.adam_eps,
                                 factor = args.factor, warmup = args.factor, 
-                                with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, 
+                                with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq,
                                 percent_data=args.percent_data)
     
 print("Training Start")
@@ -112,7 +114,7 @@ if args.tune:
         trainer.train(epoch)
         if valLoader is not None:
             trainer.test(epoch)
-        trainer.save_better(epoch, args.performance_threshold)
+        trainer.save_better(epoch)
         trainer.write_loss()
     trainer.save_best()
     trainer.write_loss()

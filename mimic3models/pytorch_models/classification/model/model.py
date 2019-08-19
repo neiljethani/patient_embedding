@@ -6,6 +6,18 @@ import pickle
 
 from .classifier import *
 
+class SequentialModel(nn.Module):
+    def __init__(self, modelA, modelB):
+        super(SequentialModel, self).__init__()
+        self.modelA = modelA
+        self.modelB = modelB
+
+    def forward(self, x):
+        z, x = self.modelA(x)
+        x = torch.cat((z,x), dim=1)
+        x = self.modelB(x)
+        return x
+            
 def make_model(d_input = None, embed_model = None, max_len = 24, dropout=0.1, embed_method='TRANS'):
         
     if embed_method == 'TRANS':
@@ -15,15 +27,16 @@ def make_model(d_input = None, embed_model = None, max_len = 24, dropout=0.1, em
         
         for p in embed_model.parameters():
             p.requires_grad = False
-        embed_model.embed = True
+        embed_model.embed = False
         
         d_model = embed_model.info['d_model']
-        model = nn.Sequential(
-            embed_model,
-            TransformerClassifier(d_model=d_model, seq_len=max_len, dropout=dropout)
-        )
-                
-    elif embed_method == 'DAE':
+        
+        model = SequentialModel(embed_model, 
+                                TransformerClassifier(d_model=d_model*2, 
+                                                      seq_len=max_len, 
+                                                      dropout=dropout))
+    
+    elif embed_method in ['DAE','DFE']:
         
         embed_model = torch.load(embed_model)
         embed_model.eval()
