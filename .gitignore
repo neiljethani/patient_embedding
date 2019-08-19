@@ -96,3 +96,9 @@ ENV/
 # States of models
 keras_states/
 states/
+
+# Bash scripts
+.sh
+
+#jupyter notebooks
+.ipynb

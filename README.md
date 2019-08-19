@@ -16,7 +16,7 @@ Our work instead attempts to address not only the longitudinal nature of the EHR
 
 ## Proposed Architecture:
 
-![](https://github.com/neiljethani/EHR/blob/master/patient_embedding/PTE_architecture.png)
+![](https://github.com/neiljethani/EHR/blob/master/patient_embedding/PTE_FINAL.png)
 
 ## Proposed Formulation:
 
