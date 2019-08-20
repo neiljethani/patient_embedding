@@ -1,4 +1,3 @@
-=======
 # Patient Embedding 
 ## Introduction:
 
@@ -44,10 +43,10 @@ We will evaluate the AUROC, AUPRC, and F1 Scores of both the unsupervised embedd
 
 #### Benchmarking Data Processing
 - Running the Scripts: Please Reference https://github.com/YerevaNN/mimic3-benchmarks/blob/master/README.md
-    - python -m mimic3benchmark.scripts.extract_subjects {PATH TO MIMIC-III CSVs} $data_root
-    - python -m mimic3benchmark.scripts.validate_events $data_root
-    - python -m mimic3benchmark.scripts.extract_episodes_from_subjects $data_root
-    - python -m mimic3benchmark.scripts.split_train_and_test $data_root
+    - `python -m mimic3benchmark.scripts.extract_subjects {PATH TO MIMIC-III CSVs} $data_root`
+    - `python -m mimic3benchmark.scripts.validate_events $data_root`
+    - `python -m mimic3benchmark.scripts.extract_episodes_from_subjects $data_root`
+    - `python -m mimic3benchmark.scripts.split_train_and_test $data_root`
         - Uses benchmarking TEST set but subdivided remains data into TRAIN, VAL, and VAL_TEST sets
 - Under the Hood
     - mimic3benchmark/mimic3csv.py
