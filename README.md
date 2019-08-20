@@ -247,25 +247,25 @@ We will evaluate the AUROC, AUPRC, and F1 Scores of both the unsupervised embedd
         - Example
             - `python -m mimic3models.visualization.tsne --embed_method TRANS --num_workers 30 --embed_model $models_pe/TRANS/2019-08-05_20-24-07/best/TRANS.ep90 -b 1024 --cuda_devices 1`
 #### Under the Hood
-    - `mimic3models/visualization/metrics.py`
-        - Only requires Embedding Method as inputs —> Finds best model and dataset for EACH TASK
-        - `mimic3models/visualization/utilis.py`
-            - EmbeddingVisualizer Class
-                - Set data —> set task —> set model —> predict 
-                - Computes bootstrapped metrics: AUPRC, AUROC, F1, and Accuracy
-                - Plots PRC and ROC 
-        - Output
-            - `vis/{embed_method}/{task}/{timestamp}/{task}.png`
-    - `mimic3models/visualization/tsne.py`
-        - Requires embedding method and model —> generates tsne with each label visualized for EACH TASK
-        - `mimic3models/visualization/utilis.py`
-            - ClassificationVisualizer Class
-                - Set data —> Set Task —> fit tsne (sklearn) —> Plots tsne
-        - Output
-            - `vis/{embed_method}/{task}/{timestamp}/`
-                - `BM_{task}.csv`
-                - `PRC_{task}.png`
-                - `ROC_{task}.png`
+- `mimic3models/visualization/metrics.py`
+    - Only requires Embedding Method as inputs —> Finds best model and dataset for EACH TASK
+    - `mimic3models/visualization/utilis.py`
+        - EmbeddingVisualizer Class
+            - Set data —> set task —> set model —> predict 
+            - Computes bootstrapped metrics: AUPRC, AUROC, F1, and Accuracy
+            - Plots PRC and ROC 
+    - Output
+        - `vis/{embed_method}/{task}/{timestamp}/{task}.png`
+- `mimic3models/visualization/tsne.py`
+    - Requires embedding method and model —> generates tsne with each label visualized for EACH TASK
+    - `mimic3models/visualization/utilis.py`
+        - ClassificationVisualizer Class
+            - Set data —> Set Task —> fit tsne (sklearn) —> Plots tsne
+    - Output
+        - `vis/{embed_method}/{task}/{timestamp}/`
+            - `BM_{task}.csv`
+            - `PRC_{task}.png`
+            - `ROC_{task}.png`
 
 
 
