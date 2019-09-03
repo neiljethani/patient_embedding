@@ -40,9 +40,9 @@ class MedEmbedLoss:
         self.loss = LossCompute(self.criterion, self.generator, embed_method)
         self.embed_method = embed_method
         
-    def __call__(self, MSx, MSy, norm = None, MSmask = None, FSx = None, FSy = None, MSprop=0.5, train=True):
+    def __call__(self, MSx, MSy, norm = None, FSx = None, FSy = None, MSprop=0.5, train=True):
         if self.embed_method == 'TRANS':
-            MSLoss = self.loss(MSx, MSy, norm, MSmask)
+            MSLoss = self.loss(MSx, MSy, norm)
             FSLoss = self.loss(FSx, FSy, norm)
             loss = MSprop*MSLoss + (1-MSprop)*FSLoss
         else:
