@@ -183,7 +183,7 @@ class EmbeddingTrainer():
                                                 #tgt_mask=data['tgt_mask'])
             
                 #Calculate Loss and Take a Step
-                loss, MSloss, FSloss = self.loss_fn(MSx=src_pred, MSy=data['src'].flatten(start_dim=1), MSmask=None, 
+                loss, MSloss, FSloss = self.loss_fn(MSx=src_pred, MSy=data['src'].flatten(start_dim=1), 
                                                     FSx=tgt_pred, FSy=data['tgt'].flatten(start_dim=1), 
                                                     norm=data['norm'], MSprop=self.MSprop, train=train)
 
